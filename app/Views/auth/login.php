@@ -73,7 +73,7 @@
                         <input type="checkbox" name="remember">
                         <span>Remember me</span>
                     </label>
-                    <a href="#" class="auth-forgot">Forgot Password?</a>
+                    <a href="<?= base_url('/forgot-password') ?>" class="auth-forgot">Forgot Password?</a>
                 </div>
                 
                 <button type="submit" class="btn btn--primary btn--full btn--lg">

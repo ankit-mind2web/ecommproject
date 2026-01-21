@@ -142,29 +142,6 @@
     font-weight: var(--font-weight-medium);
 }
 
-/* Loading State */
-.btn--loading {
-    position: relative;
-    color: transparent !important;
-}
-
-.btn--loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--color-white);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 /* Responsive */
 @media (max-width: 480px) {
     .auth-card__body {

@@ -205,4 +205,105 @@ class AuthService
 
         return ['isValid' => true, 'message' => ''];
     }
+
+    /**
+     * Send password reset link to user
+     *
+     * @param string $email
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function sendPasswordResetLink(string $email): array
+    {
+        // Find user by email
+        $user = $this->userModel->findByEmail($email);
+
+        // If user not found, do not reveal this information
+        if (!$user) {
+            return [
+                'success' => true,
+                'message' => 'A reset link has been sent to your email address.'
+            ];
+        }
+
+        // Generate token
+        $token = bin2hex(random_bytes(32));
+        $hashedToken = password_hash($token, PASSWORD_DEFAULT);
+
+        // Store token (expires in 30 minutes)
+        $passwordResetModel = new \App\Models\PasswordResetModel();
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
+        $passwordResetModel->createToken($user['id'], $hashedToken, $expiresAt);
+
+        // Build reset link
+        $resetLink = base_url("reset-password/{$token}");
+
+        // Send email
+        $mailer = new \App\Libraries\Mailer();
+        $result = $mailer->sendResetEmail($email, $resetLink);
+
+        if (!$result['success']) {
+            return [
+                'success' => false,
+                'message' => 'Failed to send email. Please try again.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => 'A reset link has been sent to your email address.'
+        ];
+    }
+
+    /**
+     * Validate a password reset token
+     *
+     * @param string $token
+     * @return array|null Returns reset data if valid, null if invalid
+     */
+    public function validateResetToken(string $token): ?array
+    {
+        $passwordResetModel = new \App\Models\PasswordResetModel();
+        $allTokens = $passwordResetModel->where('expires_at >', date('Y-m-d H:i:s'))->findAll();
+
+        foreach ($allTokens as $reset) {
+            if (password_verify($token, $reset['token'])) {
+                return $reset;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reset user password
+     *
+     * @param string $token
+     * @param string $newPassword
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function resetPassword(string $token, string $newPassword): array
+    {
+        // Validate token
+        $validReset = $this->validateResetToken($token);
+
+        if (!$validReset) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired reset link. Please request a new one.'
+            ];
+        }
+
+        // Update password
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $this->userModel->update($validReset['user_id'], ['password' => $hashedPassword]);
+
+        // Delete token
+        $passwordResetModel = new \App\Models\PasswordResetModel();
+        $passwordResetModel->deleteToken($validReset['id']);
+
+        return [
+            'success' => true,
+            'message' => 'Password reset successful! Please login with your new password.'
+        ];
+    }
 }
