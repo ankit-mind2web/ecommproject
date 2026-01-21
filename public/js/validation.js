@@ -14,7 +14,7 @@ const Validator = {
             return { isValid: false, message: 'Email is required' };
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[a-z0-9._-]{1,25}@([a-z0-9-]+\.)+[a-z]{2,4}$/;
         if (!emailRegex.test(email.trim())) {
             return { isValid: false, message: 'Please enter a valid email address' };
         }
@@ -86,8 +86,8 @@ const Validator = {
             return { isValid: false, message: `${fieldName} must not exceed ${maxLength} characters` };
         }
 
-        if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
-            return { isValid: false, message: `${fieldName} can only contain letters and spaces` };
+        if (!/^[a-zA-Z]+$/.test(trimmedName)) {
+            return { isValid: false, message: `${fieldName} can only contain alphabets ` };
         }
 
         return { isValid: true, message: '' };

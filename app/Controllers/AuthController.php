@@ -150,4 +150,110 @@ class AuthController extends BaseController
         $this->authService->logout();
         return redirect()->to('/login')->with('success', 'You have been logged out');
     }
+
+    /**
+     * Display forgot password form
+     */
+    public function forgotPasswordForm()
+    {
+        return view('auth/forgot_password', [
+            'title'    => 'Forgot Password',
+            'extraCss' => ['auth.css'],
+            'extraJs'  => ['auth.js']
+        ]);
+    }
+
+    /**
+     * Handle forgot password form submission and send reset link
+     */
+    public function sendResetLink()
+    {
+        // Validate email
+        $rules = [
+            'email' => 'required|valid_email'
+        ];
+
+        $messages = [
+            'email' => [
+                'required'    => 'Email is required',
+                'valid_email' => 'Please enter a valid email address'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                           ->withInput()
+                           ->with('errors', $this->validator->getErrors());
+        }
+
+        $email = $this->request->getPost('email');
+        $result = $this->authService->sendPasswordResetLink($email);
+
+        if (!$result['success']) {
+            return redirect()->back()
+                           ->with('error', $result['message']);
+        }
+
+        return redirect()->back()
+                       ->with('success', $result['message']);
+    }
+
+    /**
+     * Display reset password form
+     */
+    public function resetPasswordForm($token)
+    {
+        $validReset = $this->authService->validateResetToken($token);
+
+        if (!$validReset) {
+            return redirect()->to('/forgot-password')
+                           ->with('error', 'Invalid or expired reset link. Please request a new one.');
+        }
+
+        return view('auth/reset_password', [
+            'title'    => 'Reset Password',
+            'token'    => $token,
+            'extraCss' => ['auth.css'],
+            'extraJs'  => ['auth.js']
+        ]);
+    }
+
+    /**
+     * Handle password update
+     */
+    public function updatePassword($token)
+    {
+        // Validate passwords
+        $rules = [
+            'password'         => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[password]'
+        ];
+
+        $messages = [
+            'password' => [
+                'required'   => 'Password is required',
+                'min_length' => 'Password must be at least 8 characters'
+            ],
+            'confirm_password' => [
+                'required' => 'Please confirm your password',
+                'matches'  => 'Passwords do not match'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                           ->with('errors', $this->validator->getErrors());
+        }
+
+        $newPassword = $this->request->getPost('password');
+        $result = $this->authService->resetPassword($token, $newPassword);
+
+        if (!$result['success']) {
+            return redirect()->to('/forgot-password')
+                           ->with('error', $result['message']);
+        }
+
+        return redirect()->to('/login')
+                       ->with('success', $result['message']);
+    }
 }
