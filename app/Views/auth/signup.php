@@ -111,7 +111,7 @@
         </div>
         
         <div class="auth-card__footer">
-            Already have an account? <a href="<?= base_url('/login') ?>">Sign in</a>
+            Already have an account? <a href="<?= base_url('/login') ?>">Login</a>
         </div>
     </div>
 </div>

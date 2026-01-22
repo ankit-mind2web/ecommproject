@@ -86,7 +86,7 @@ const Validator = {
             return { isValid: false, message: `${fieldName} must not exceed ${maxLength} characters` };
         }
 
-        if (!/^[a-zA-Z]+$/.test(trimmedName)) {
+        if (!/^[a-zA-Z\s]+$/.test(trimmedName)) {
             return { isValid: false, message: `${fieldName} can only contain alphabets ` };
         }
 

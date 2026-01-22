@@ -17,7 +17,8 @@ class UserModel extends Model
         'email',
         'password',
         'role',
-        'status'
+        'status',
+        'is_verified'
     ];
 
     // Dates
@@ -67,6 +68,17 @@ class UserModel extends Model
     }
 
     /**
+     * Find user by email including soft-deleted users
+     *
+     * @param string $email
+     * @return array|null
+     */
+    public function findByEmailWithDeleted(string $email): ?array
+    {
+        return $this->withDeleted()->where('email', $email)->first();
+    }
+
+    /**
      * Find active user by email
      *
      * @param string $email
@@ -110,5 +122,60 @@ class UserModel extends Model
         $data['status'] = $data['status'] ?? 'active';
         
         return $this->insert($data);
+    }
+
+    /**
+     * Mark user as verified
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public function markAsVerified(int $userId): bool
+    {
+        return $this->update($userId, ['is_verified' => 1]);
+    }
+
+    /**
+     * Get all customers (users with role = customer)
+     *
+     * @return array
+     */
+    public function getCustomers(): array
+    {
+        return $this->where('role', 'customer')
+                    ->orderBy('created_at', 'DESC')
+                    ->findAll();
+    }
+
+    /**
+     * Get customer by ID
+     *
+     * @param int $id
+     * @return array|null
+     */
+    public function getCustomer(int $id): ?array
+    {
+        return $this->where('id', $id)
+                    ->where('role', 'customer')
+                    ->first();
+    }
+
+    /**
+     * Update customer details (without password)
+     *
+     * @param int   $id
+     * @param array $data
+     * @return bool
+     */
+    public function updateCustomer(int $id, array $data): bool
+    {
+        // Remove password from data if empty
+        if (empty($data['password'])) {
+            unset($data['password']);
+        }
+        
+        // Skip model validation since controller handles it
+        // Model validation requires password which is not provided in admin updates
+        return $this->skipValidation(true)->update($id, $data);
     }
 }
