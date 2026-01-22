@@ -256,4 +256,20 @@ class AuthController extends BaseController
         return redirect()->to('/login')
                        ->with('success', $result['message']);
     }
+
+    /**
+     * Verify email with token - redirects to login page
+     */
+    public function verifyEmail($token)
+    {
+        $result = $this->authService->verifyEmail($token);
+
+        if (!$result['success']) {
+            return redirect()->to('/login')
+                           ->with('error', $result['message']);
+        }
+
+        return redirect()->to('/login')
+                       ->with('success', $result['message']);
+    }
 }

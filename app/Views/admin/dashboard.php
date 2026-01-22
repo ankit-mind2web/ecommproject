@@ -9,7 +9,7 @@
             <p class="stat-card__label">Total Customers</p>
             <p class="stat-card__value"><?= number_format($stats['totalUsers'] ?? 0) ?></p>
             <p class="stat-card__change stat-card__change--up">
-                <i class="fas fa-arrow-up"></i> 12% from last month
+                <!-- <i class="fas fa-arrow-up"></i> 12% from last month -->
             </p>
         </div>
         <div class="stat-card__icon stat-card__icon--primary">
@@ -22,7 +22,7 @@
             <p class="stat-card__label">Total Orders</p>
             <p class="stat-card__value"><?= number_format($stats['totalOrders'] ?? 0) ?></p>
             <p class="stat-card__change stat-card__change--up">
-                <i class="fas fa-arrow-up"></i> 8% from last month
+                <!-- <i class="fas fa-arrow-up"></i> 8% from last month -->
             </p>
         </div>
         <div class="stat-card__icon stat-card__icon--success">
@@ -35,7 +35,7 @@
             <p class="stat-card__label">Total Products</p>
             <p class="stat-card__value"><?= number_format($stats['totalProducts'] ?? 0) ?></p>
             <p class="stat-card__change stat-card__change--up">
-                <i class="fas fa-arrow-up"></i> 5 new this week
+                <!-- <i class="fas fa-arrow-up"></i> 5 new this week -->
             </p>
         </div>
         <div class="stat-card__icon stat-card__icon--warning">
@@ -48,7 +48,7 @@
             <p class="stat-card__label">Total Revenue</p>
             <p class="stat-card__value">₹<?= number_format($stats['totalRevenue'] ?? 0, 2) ?></p>
             <p class="stat-card__change stat-card__change--up">
-                <i class="fas fa-arrow-up"></i> 15% from last month
+                <!-- <i class="fas fa-arrow-up"></i> 15% from last month -->
             </p>
         </div>
         <div class="stat-card__icon stat-card__icon--info">
@@ -111,15 +111,15 @@
                     <i class="fas fa-plus"></i>
                     <span>Add Product</span>
                 </a>
-                <a href="<?= base_url('/admin/categories') ?>" class="quick-action">
+                <a href="<?= base_url('/admin/categories/create') ?>" class="quick-action">
                     <i class="fas fa-folder-plus"></i>
                     <span>Add Category</span>
                 </a>
-                <a href="<?= base_url('/admin/orders') ?>" class="quick-action">
+                <a href="<?= base_url('/admin') ?>" class="quick-action">
                     <i class="fas fa-clipboard-list"></i>
                     <span>View Orders</span>
                 </a>
-                <a href="<?= base_url('/admin/coupons') ?>" class="quick-action">
+                <a href="<?= base_url('/admin') ?>" class="quick-action">
                     <i class="fas fa-percent"></i>
                     <span>Create Coupon</span>
                 </a>
@@ -127,7 +127,7 @@
                     <i class="fas fa-user-plus"></i>
                     <span>Manage Users</span>
                 </a>
-                <a href="<?= base_url('/admin/reviews') ?>" class="quick-action">
+                <a href="<?= base_url('/admin') ?>" class="quick-action">
                     <i class="fas fa-star"></i>
                     <span>Manage Reviews</span>
                 </a>

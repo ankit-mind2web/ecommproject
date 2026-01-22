@@ -19,7 +19,7 @@
                 </div>
             <?php endif; ?>
             
-            <form id="resetPasswordForm" action="<?= base_url('/reset-password/' . $token) ?>" method="POST" autocomplete="off">
+            <form id="resetPasswordForm" action="<?= base_url('/reset-password/' . $token) ?>" method="POST" >
                 <?= csrf_field() ?>
                 
                 <div class="form-group">

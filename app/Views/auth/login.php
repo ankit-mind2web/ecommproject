@@ -25,7 +25,7 @@
                 </div>
             <?php endif; ?>
             
-            <form id="loginForm" action="<?= base_url('/login') ?>" method="POST" autocomplete="off">
+            <form id="loginForm" action="<?= base_url('/login') ?>" method="POST"   >
                 <?= csrf_field() ?>
                 
                 <div class="form-group">
@@ -37,7 +37,6 @@
                         class="form-input <?= session()->getFlashdata('errors.email') ? 'form-input--error' : '' ?>"
                         placeholder="Enter your email"
                         value="<?= old('email') ?>"
-                        autocomplete="off"
                     >
                     <?php if ($errors = session()->getFlashdata('errors')): ?>
                         <?php if (isset($errors['email'])): ?>

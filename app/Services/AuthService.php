@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Libraries\Mailer;
 use App\Models\UserModel;
 
 class AuthService
@@ -22,10 +23,11 @@ class AuthService
      */
     public function login(string $email, string $password): array
     {
-        // Find active user by email
-        $user = $this->userModel->findActiveByEmail($email);
+        // First check if user exists at all (including soft-deleted)
+        $userWithDeleted = $this->userModel->findByEmailWithDeleted($email);
 
-        if (!$user) {
+        // If user doesn't exist at all
+        if (!$userWithDeleted) {
             return [
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -33,8 +35,26 @@ class AuthService
             ];
         }
 
+        // Check if user is soft-deleted (deactivated by admin)
+        if (!empty($userWithDeleted['deleted_at'])) {
+            return [
+                'success' => false,
+                'message' => 'Your account has been deactivated.',
+                'user'    => null
+            ];
+        }
+
+        // Check if user is inactive
+        if ($userWithDeleted['status'] === 'inactive') {
+            return [
+                'success' => false,
+                'message' => 'Your account is currently inactive.',
+                'user'    => null
+            ];
+        }
+
         // Verify password
-        if (!password_verify($password, $user['password'])) {
+        if (!password_verify($password, $userWithDeleted['password'])) {
             return [
                 'success' => false,
                 'message' => 'Invalid email or password',
@@ -43,15 +63,15 @@ class AuthService
         }
 
         // Remove password from user data
-        unset($user['password']);
+        unset($userWithDeleted['password']);
 
         // Set session
-        $this->setUserSession($user);
+        $this->setUserSession($userWithDeleted);
 
         return [
             'success' => true,
             'message' => 'Login successful',
-            'user'    => $user
+            'user'    => $userWithDeleted
         ];
     }
 
@@ -82,13 +102,14 @@ class AuthService
             ];
         }
 
-        // Create user
+        // Create user with is_verified = 0
         $userId = $this->userModel->createUser([
-            'name'     => trim($data['name']),
-            'email'    => trim($data['email']),
-            'password' => $data['password'],
-            'role'     => 'customer',
-            'status'   => 'active'
+            'name'        => trim($data['name']),
+            'email'       => trim($data['email']),
+            'password'    => $data['password'],
+            'role'        => 'customer',
+            'status'      => 'active',
+            'is_verified' => 0
         ]);
 
         if (!$userId) {
@@ -100,11 +121,43 @@ class AuthService
             ];
         }
 
+        // Send welcome email with verification link
+        $this->sendWelcomeVerificationEmail($userId, trim($data['name']), trim($data['email']));
+
         return [
             'success' => true,
-            'message' => 'Registration successful! Please login.',
+            'message' => 'Registration successful! Please check your email to verify your account.',
             'errors'  => []
         ];
+    }
+
+    /**
+     * Send welcome email with verification link
+     *
+     * @param int    $userId
+     * @param string $name
+     * @param string $email
+     * @return bool
+     */
+    protected function sendWelcomeVerificationEmail(int $userId, string $name, string $email): bool
+    {
+        // Generate verification token
+        $token = bin2hex(random_bytes(32));
+        $hashedToken = password_hash($token, PASSWORD_DEFAULT);
+
+        // Store token (expires in 24 hours)
+        $tokenModel = new \App\Models\TokenModel();
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
+        $tokenModel->createToken($userId, $hashedToken, \App\Models\TokenModel::TYPE_EMAIL_VERIFICATION, $expiresAt);
+
+        // Build verification link
+        $verificationLink = base_url("verify-email/{$token}");
+
+        // Send email
+        $mailer = new Mailer();
+        $result = $mailer->sendWelcomeEmail($email, $name, $verificationLink);
+
+        return $result['success'];
     }
 
     /**
@@ -230,15 +283,15 @@ class AuthService
         $hashedToken = password_hash($token, PASSWORD_DEFAULT);
 
         // Store token (expires in 30 minutes)
-        $passwordResetModel = new \App\Models\PasswordResetModel();
+        $tokenModel = new \App\Models\TokenModel();
         $expiresAt = date('Y-m-d H:i:s', strtotime('+30 minutes'));
-        $passwordResetModel->createToken($user['id'], $hashedToken, $expiresAt);
+        $tokenModel->createToken($user['id'], $hashedToken, \App\Models\TokenModel::TYPE_PASSWORD_RESET, $expiresAt);
 
         // Build reset link
         $resetLink = base_url("reset-password/{$token}");
 
         // Send email
-        $mailer = new \App\Libraries\Mailer();
+        $mailer = new Mailer();
         $result = $mailer->sendResetEmail($email, $resetLink);
 
         if (!$result['success']) {
@@ -262,8 +315,8 @@ class AuthService
      */
     public function validateResetToken(string $token): ?array
     {
-        $passwordResetModel = new \App\Models\PasswordResetModel();
-        $allTokens = $passwordResetModel->where('expires_at >', date('Y-m-d H:i:s'))->findAll();
+        $tokenModel = new \App\Models\TokenModel();
+        $allTokens = $tokenModel->findAllValidTokensByType(\App\Models\TokenModel::TYPE_PASSWORD_RESET);
 
         foreach ($allTokens as $reset) {
             if (password_verify($token, $reset['token'])) {
@@ -298,12 +351,50 @@ class AuthService
         $this->userModel->update($validReset['user_id'], ['password' => $hashedPassword]);
 
         // Delete token
-        $passwordResetModel = new \App\Models\PasswordResetModel();
-        $passwordResetModel->deleteToken($validReset['id']);
+        $tokenModel = new \App\Models\TokenModel();
+        $tokenModel->deleteToken($validReset['id']);
 
         return [
             'success' => true,
             'message' => 'Password reset successful! Please login with your new password.'
+        ];
+    }
+
+    /**
+     * Verify user email with token
+     *
+     * @param string $token
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function verifyEmail(string $token): array
+    {
+        $tokenModel = new \App\Models\TokenModel();
+        $allTokens = $tokenModel->findAllValidTokensByType(\App\Models\TokenModel::TYPE_EMAIL_VERIFICATION);
+
+        $validToken = null;
+        foreach ($allTokens as $tokenData) {
+            if (password_verify($token, $tokenData['token'])) {
+                $validToken = $tokenData;
+                break;
+            }
+        }
+
+        if (!$validToken) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or expired verification link.'
+            ];
+        }
+
+        // Mark user as verified
+        $this->userModel->markAsVerified($validToken['user_id']);
+
+        // Delete the token
+        $tokenModel->deleteToken($validToken['id']);
+
+        return [
+            'success' => true,
+            'message' => 'Email verified successfully! You can now login.'
         ];
     }
 }
